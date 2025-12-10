@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Conference } from "@/types/conference";
 import { ConferenceCard } from "@/components/ConferenceCard";
 import { ConferenceModal } from "@/components/ConferenceModal";
 import { AddConferenceForm } from "@/components/AddConferenceForm";
+import { ConferenceFilters } from "@/components/ConferenceFilters";
 import { useToast } from "@/hooks/use-toast";
 import { Train } from "lucide-react";
 
@@ -13,6 +14,11 @@ const Index = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Filter states
+  const [search, setSearch] = useState("");
+  const [universityFilter, setUniversityFilter] = useState("all");
+  const [formatFilter, setFormatFilter] = useState("all");
 
   useEffect(() => {
     fetchConferences();
@@ -37,6 +43,46 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Extract unique values for filters
+  const universities = useMemo(() => {
+    const uniqueUniversities = [...new Set(conferences.map((c) => c.university))];
+    return uniqueUniversities.filter(Boolean).sort();
+  }, [conferences]);
+
+  const formats = useMemo(() => {
+    const uniqueFormats = [...new Set(conferences.map((c) => c.format))];
+    return uniqueFormats.filter(Boolean).sort();
+  }, [conferences]);
+
+  // Filtered conferences
+  const filteredConferences = useMemo(() => {
+    return conferences.filter((conference) => {
+      // Search filter
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        !search ||
+        conference.title.toLowerCase().includes(searchLower) ||
+        conference.topic.toLowerCase().includes(searchLower) ||
+        conference.description?.toLowerCase().includes(searchLower);
+
+      // University filter
+      const matchesUniversity =
+        universityFilter === "all" || conference.university === universityFilter;
+
+      // Format filter
+      const matchesFormat =
+        formatFilter === "all" || conference.format === formatFilter;
+
+      return matchesSearch && matchesUniversity && matchesFormat;
+    });
+  }, [conferences, search, universityFilter, formatFilter]);
+
+  const resetFilters = () => {
+    setSearch("");
+    setUniversityFilter("all");
+    setFormatFilter("all");
   };
 
   const handleAddConference = async (newConference: {
@@ -121,13 +167,26 @@ const Index = () => {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Filters */}
+        <ConferenceFilters
+          search={search}
+          onSearchChange={setSearch}
+          university={universityFilter}
+          onUniversityChange={setUniversityFilter}
+          format={formatFilter}
+          onFormatChange={setFormatFilter}
+          universities={universities}
+          formats={formats}
+          onReset={resetFilters}
+        />
+
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
               Список конференций
             </h2>
             <p className="text-sm text-muted-foreground">
-              Найдено: {conferences.length}
+              Найдено: {filteredConferences.length} из {conferences.length}
             </p>
           </div>
           <AddConferenceForm onAdd={handleAddConference} />
@@ -142,13 +201,17 @@ const Index = () => {
               />
             ))}
           </div>
-        ) : conferences.length === 0 ? (
+        ) : filteredConferences.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-muted-foreground">Конференции не найдены</p>
+            <p className="text-muted-foreground">
+              {conferences.length === 0
+                ? "Конференции не найдены"
+                : "Нет конференций по выбранным фильтрам"}
+            </p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {conferences.map((conference) => (
+            {filteredConferences.map((conference) => (
               <ConferenceCard
                 key={conference.id}
                 conference={conference}
