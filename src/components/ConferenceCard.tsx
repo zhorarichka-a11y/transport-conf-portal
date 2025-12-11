@@ -2,20 +2,26 @@ import { Conference } from "@/types/conference";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Building2, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Building2, Trash2, Pencil } from "lucide-react";
 
 interface ConferenceCardProps {
   conference: Conference;
   onClick: () => void;
   onDelete: (id: string) => void;
+  onEdit: (conference: Conference) => void;
 }
 
-export const ConferenceCard = ({ conference, onClick, onDelete }: ConferenceCardProps) => {
+export const ConferenceCard = ({ conference, onClick, onDelete, onEdit }: ConferenceCardProps) => {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Удалить эту конференцию?")) {
       onDelete(conference.id);
     }
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(conference);
   };
 
   return (
@@ -28,14 +34,24 @@ export const ConferenceCard = ({ conference, onClick, onDelete }: ConferenceCard
           <CardTitle className="text-lg leading-tight text-foreground">
             {conference.title}
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 text-muted-foreground hover:text-destructive"
-            onClick={handleDelete}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex shrink-0 gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-primary"
+              onClick={handleEdit}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <Badge variant="secondary" className="w-fit">
           {conference.university}

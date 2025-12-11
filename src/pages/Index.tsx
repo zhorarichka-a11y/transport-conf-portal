@@ -4,6 +4,7 @@ import { Conference } from "@/types/conference";
 import { ConferenceCard } from "@/components/ConferenceCard";
 import { ConferenceModal } from "@/components/ConferenceModal";
 import { AddConferenceForm } from "@/components/AddConferenceForm";
+import { EditConferenceForm } from "@/components/EditConferenceForm";
 import { ConferenceFilters } from "@/components/ConferenceFilters";
 import { useToast } from "@/hooks/use-toast";
 import { Train } from "lucide-react";
@@ -12,6 +13,8 @@ const Index = () => {
   const [conferences, setConferences] = useState<Conference[]>([]);
   const [selectedConference, setSelectedConference] = useState<Conference | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingConference, setEditingConference] = useState<Conference | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -59,7 +62,6 @@ const Index = () => {
   // Filtered conferences
   const filteredConferences = useMemo(() => {
     return conferences.filter((conference) => {
-      // Search filter
       const searchLower = search.toLowerCase();
       const matchesSearch =
         !search ||
@@ -67,11 +69,9 @@ const Index = () => {
         conference.topic.toLowerCase().includes(searchLower) ||
         conference.description?.toLowerCase().includes(searchLower);
 
-      // University filter
       const matchesUniversity =
         universityFilter === "all" || conference.university === universityFilter;
 
-      // Format filter
       const matchesFormat =
         formatFilter === "all" || conference.format === formatFilter;
 
@@ -120,6 +120,34 @@ const Index = () => {
     }
   };
 
+  const handleEditConference = async (id: string, updatedData: Partial<Conference>) => {
+    try {
+      const { data, error } = await supabase
+        .from("conferences")
+        .update(updatedData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setConferences((prev) =>
+        prev.map((c) => (c.id === id ? data : c))
+      );
+      toast({
+        title: "Успешно",
+        description: "Конференция обновлена",
+      });
+    } catch (error) {
+      console.error("Error updating conference:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить конференцию",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteConference = async (id: string) => {
     try {
       const { error } = await supabase.from("conferences").delete().eq("id", id);
@@ -144,6 +172,11 @@ const Index = () => {
   const handleCardClick = (conference: Conference) => {
     setSelectedConference(conference);
     setModalOpen(true);
+  };
+
+  const handleEditClick = (conference: Conference) => {
+    setEditingConference(conference);
+    setEditModalOpen(true);
   };
 
   return (
@@ -217,6 +250,7 @@ const Index = () => {
                 conference={conference}
                 onClick={() => handleCardClick(conference)}
                 onDelete={handleDeleteConference}
+                onEdit={handleEditClick}
               />
             ))}
           </div>
@@ -227,6 +261,13 @@ const Index = () => {
         conference={selectedConference}
         open={modalOpen}
         onOpenChange={setModalOpen}
+      />
+
+      <EditConferenceForm
+        conference={editingConference}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSave={handleEditConference}
       />
     </div>
   );
