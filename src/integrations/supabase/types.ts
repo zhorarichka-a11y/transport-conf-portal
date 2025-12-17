@@ -77,6 +77,35 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_conferences: {
+        Row: {
+          conference_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          conference_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          conference_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_conferences_conference_id_fkey"
+            columns: ["conference_id"]
+            isOneToOne: false
+            referencedRelation: "conferences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

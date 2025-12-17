@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Train, LogIn, LogOut, Shield } from "lucide-react";
+import { Train, LogIn, LogOut, Shield, User } from "lucide-react";
 
 const Index = () => {
   const [conferences, setConferences] = useState<Conference[]>([]);
@@ -20,6 +20,7 @@ const Index = () => {
   const [editingConference, setEditingConference] = useState<Conference | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user, isAdmin, signOut } = useAuth();
 
@@ -31,6 +32,14 @@ const Index = () => {
   useEffect(() => {
     fetchConferences();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchSavedConferences();
+    } else {
+      setSavedIds(new Set());
+    }
+  }, [user]);
 
   const fetchConferences = async () => {
     try {
@@ -50,6 +59,76 @@ const Index = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSavedConferences = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from("saved_conferences")
+      .select("conference_id")
+      .eq("user_id", user.id);
+
+    if (!error && data) {
+      setSavedIds(new Set(data.map(item => item.conference_id)));
+    }
+  };
+
+  const handleSaveToggle = async (conferenceId: string) => {
+    if (!user) {
+      toast({
+        title: "Требуется авторизация",
+        description: "Войдите в систему, чтобы сохранять конференции",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isSaved = savedIds.has(conferenceId);
+
+    if (isSaved) {
+      const { error } = await supabase
+        .from("saved_conferences")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("conference_id", conferenceId);
+
+      if (error) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось удалить из сохранённых",
+          variant: "destructive",
+        });
+      } else {
+        setSavedIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(conferenceId);
+          return newSet;
+        });
+        toast({
+          title: "Удалено",
+          description: "Конференция удалена из сохранённых",
+        });
+      }
+    } else {
+      const { error } = await supabase
+        .from("saved_conferences")
+        .insert({ user_id: user.id, conference_id: conferenceId });
+
+      if (error) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось сохранить конференцию",
+          variant: "destructive",
+        });
+      } else {
+        setSavedIds(prev => new Set(prev).add(conferenceId));
+        toast({
+          title: "Сохранено",
+          description: "Конференция добавлена в сохранённые",
+        });
+      }
     }
   };
 
@@ -218,9 +297,12 @@ const Index = () => {
                       Администратор
                     </Badge>
                   )}
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {user.email}
-                  </span>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/profile">
+                      <User className="h-4 w-4 mr-2" />
+                      Кабинет
+                    </Link>
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleLogout}>
                     <LogOut className="h-4 w-4 mr-2" />
                     Выйти
@@ -293,6 +375,9 @@ const Index = () => {
                 onDelete={handleDeleteConference}
                 onEdit={handleEditClick}
                 isAdmin={isAdmin}
+                isSaved={savedIds.has(conference.id)}
+                onSaveToggle={() => handleSaveToggle(conference.id)}
+                showSaveButton={!!user}
               />
             ))}
           </div>

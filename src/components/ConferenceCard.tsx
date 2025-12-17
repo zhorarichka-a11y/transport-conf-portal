@@ -2,27 +2,44 @@ import { Conference } from "@/types/conference";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Building2, Trash2, Pencil } from "lucide-react";
+import { Calendar, MapPin, Building2, Trash2, Pencil, Bookmark } from "lucide-react";
 
 interface ConferenceCardProps {
   conference: Conference;
   onClick: () => void;
-  onDelete: (id: string) => void;
-  onEdit: (conference: Conference) => void;
+  onDelete?: (id: string) => void;
+  onEdit?: (conference: Conference) => void;
   isAdmin?: boolean;
+  isSaved?: boolean;
+  onSaveToggle?: () => void;
+  showSaveButton?: boolean;
 }
 
-export const ConferenceCard = ({ conference, onClick, onDelete, onEdit, isAdmin = false }: ConferenceCardProps) => {
+export const ConferenceCard = ({ 
+  conference, 
+  onClick, 
+  onDelete, 
+  onEdit, 
+  isAdmin = false,
+  isSaved = false,
+  onSaveToggle,
+  showSaveButton = false
+}: ConferenceCardProps) => {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Удалить эту конференцию?")) {
-      onDelete(conference.id);
+      onDelete?.(conference.id);
     }
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onEdit(conference);
+    onEdit?.(conference);
+  };
+
+  const handleSaveToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSaveToggle?.();
   };
 
   return (
@@ -35,26 +52,39 @@ export const ConferenceCard = ({ conference, onClick, onDelete, onEdit, isAdmin 
           <CardTitle className="text-lg leading-tight text-foreground">
             {conference.title}
           </CardTitle>
-          {isAdmin && (
-            <div className="flex shrink-0 gap-1">
+          <div className="flex shrink-0 gap-1">
+            {showSaveButton && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground hover:text-primary"
-                onClick={handleEdit}
+                className={isSaved ? "text-primary" : "text-muted-foreground hover:text-primary"}
+                onClick={handleSaveToggle}
+                title={isSaved ? "Удалить из сохранённых" : "Сохранить"}
               >
-                <Pencil className="h-4 w-4" />
+                <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+            )}
+            {isAdmin && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-primary"
+                  onClick={handleEdit}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
         <Badge variant="secondary" className="w-fit">
           {conference.university}
