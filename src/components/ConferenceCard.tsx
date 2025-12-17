@@ -9,9 +9,10 @@ interface ConferenceCardProps {
   onClick: () => void;
   onDelete: (id: string) => void;
   onEdit: (conference: Conference) => void;
+  isAdmin?: boolean;
 }
 
-export const ConferenceCard = ({ conference, onClick, onDelete, onEdit }: ConferenceCardProps) => {
+export const ConferenceCard = ({ conference, onClick, onDelete, onEdit, isAdmin = false }: ConferenceCardProps) => {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Удалить эту конференцию?")) {
@@ -34,24 +35,26 @@ export const ConferenceCard = ({ conference, onClick, onDelete, onEdit }: Confer
           <CardTitle className="text-lg leading-tight text-foreground">
             {conference.title}
           </CardTitle>
-          <div className="flex shrink-0 gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-primary"
-              onClick={handleEdit}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-destructive"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="flex shrink-0 gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-primary"
+                onClick={handleEdit}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
         <Badge variant="secondary" className="w-fit">
           {conference.university}
