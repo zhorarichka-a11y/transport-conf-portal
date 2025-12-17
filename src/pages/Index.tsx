@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Conference } from "@/types/conference";
 import { ConferenceCard } from "@/components/ConferenceCard";
@@ -7,7 +8,10 @@ import { AddConferenceForm } from "@/components/AddConferenceForm";
 import { EditConferenceForm } from "@/components/EditConferenceForm";
 import { ConferenceFilters } from "@/components/ConferenceFilters";
 import { useToast } from "@/hooks/use-toast";
-import { Train } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Train, LogIn, LogOut, Shield } from "lucide-react";
 
 const Index = () => {
   const [conferences, setConferences] = useState<Conference[]>([]);
@@ -17,6 +21,7 @@ const Index = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user, isAdmin, signOut } = useAuth();
 
   // Filter states
   const [search, setSearch] = useState("");
@@ -114,7 +119,7 @@ const Index = () => {
       console.error("Error adding conference:", error);
       toast({
         title: "Ошибка",
-        description: "Не удалось добавить конференцию",
+        description: "Не удалось добавить конференцию. Требуются права администратора.",
         variant: "destructive",
       });
     }
@@ -142,7 +147,7 @@ const Index = () => {
       console.error("Error updating conference:", error);
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить конференцию",
+        description: "Не удалось обновить конференцию. Требуются права администратора.",
         variant: "destructive",
       });
     }
@@ -163,7 +168,7 @@ const Index = () => {
       console.error("Error deleting conference:", error);
       toast({
         title: "Ошибка",
-        description: "Не удалось удалить конференцию",
+        description: "Не удалось удалить конференцию. Требуются права администратора.",
         variant: "destructive",
       });
     }
@@ -179,20 +184,56 @@ const Index = () => {
     setEditModalOpen(true);
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    toast({
+      title: "Выход",
+      description: "Вы вышли из системы",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Train className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <Train className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">
+                  Конференции транспортных вузов РФ
+                </h1>
+                <p className="text-sm text-muted-foreground">2025 год</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                Конференции транспортных вузов РФ
-              </h1>
-              <p className="text-sm text-muted-foreground">2025 год</p>
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  {isAdmin && (
+                    <Badge variant="default" className="gap-1">
+                      <Shield className="h-3 w-3" />
+                      Администратор
+                    </Badge>
+                  )}
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {user.email}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Выйти
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/auth">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Войти
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -222,7 +263,7 @@ const Index = () => {
               Найдено: {filteredConferences.length} из {conferences.length}
             </p>
           </div>
-          <AddConferenceForm onAdd={handleAddConference} />
+          {isAdmin && <AddConferenceForm onAdd={handleAddConference} />}
         </div>
 
         {loading ? (
@@ -251,6 +292,7 @@ const Index = () => {
                 onClick={() => handleCardClick(conference)}
                 onDelete={handleDeleteConference}
                 onEdit={handleEditClick}
+                isAdmin={isAdmin}
               />
             ))}
           </div>
